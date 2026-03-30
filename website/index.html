@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#3B82F6">
+  <title>Kids Events</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="page-wrapper">
+
+  <!-- ── Filter bar ──────────────────────────────────────────────────────── -->
+  <div id="filter-bar-wrap">
+    <button id="filter-btn" class="btn btn-ghost btn-sm">&#9881; Filter</button>
+    <div id="filter-chips"></div>
+  </div>
+
+  <!-- ── Main calendar card ──────────────────────────────────────────────── -->
+  <div class="card cal-card">
+    <div id="cal-nav">
+      <button id="back-btn"  class="nav-btn back-btn" aria-label="Go back" style="display:none">&#171;</button>
+      <button id="prev-btn"  class="nav-btn" aria-label="Previous">&#8249;</button>
+      <span   id="view-label">Loading&#8230;</span>
+      <button id="next-btn"  class="nav-btn" aria-label="Next">&#8250;</button>
+    </div>
+    <div id="view-content"></div>
+  </div>
+
+  <!-- ── Submit an Event ─────────────────────────────────────────────────── -->
+  <div class="card">
+    <h2 class="card-title">Submit an Event</h2>
+    <form id="event-form" class="section-pad" novalidate>
+
+      <div class="form-group">
+        <label for="f-title">Title <span class="req">*</span></label>
+        <input type="text" id="f-title" name="title" required placeholder="e.g. Soccer Camp">
+      </div>
+
+      <div class="form-group">
+        <label for="f-location">Location <span class="optional">(optional)</span></label>
+        <input type="text" id="f-location" name="location" placeholder="Venue name or address">
+      </div>
+
+      <div class="form-group">
+        <label for="f-type">Event Type <span class="optional">(optional)</span></label>
+        <input type="text" id="f-type" name="type" list="types-datalist" placeholder="Type or choose from list&hellip;">
+        <datalist id="types-datalist"></datalist>
+      </div>
+
+      <div class="form-group">
+        <label>Age Groups <span class="optional">(optional)</span></label>
+        <div id="f-age-groups" class="age-checkboxes"></div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="f-start">Start Date <span class="req">*</span></label>
+          <input type="date" id="f-start" name="startDate" required>
+        </div>
+        <div class="form-group">
+          <label for="f-end">End Date <span class="optional">(optional)</span></label>
+          <input type="date" id="f-end" name="endDate">
+        </div>
+      </div>
+
+      <div id="single-times">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="f-start-time">Start Time <span class="optional">(optional)</span></label>
+            <input type="time" id="f-start-time" name="singleStartTime">
+          </div>
+          <div class="form-group">
+            <label for="f-end-time">End Time <span class="optional">(optional)</span></label>
+            <input type="time" id="f-end-time" name="singleEndTime">
+          </div>
+        </div>
+      </div>
+
+      <div id="multi-times" class="hidden">
+        <div id="times-section">
+          <h4>Daily Times <span class="optional">(optional)</span></h4>
+          <div id="times-grid"></div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="f-price">Price ($) <span class="optional">(0 = free)</span></label>
+        <input type="number" id="f-price" name="price" value="0" min="0" step="0.01">
+      </div>
+
+      <div class="form-group">
+        <label for="f-flyer">Flyer Image <span class="optional">(optional)</span></label>
+        <input type="file" id="f-flyer" name="flyer" accept="image/*">
+      </div>
+
+      <button type="submit" id="submit-btn" class="btn btn-primary btn-full">Submit Event</button>
+      <div id="submit-status" class="hidden"></div>
+    </form>
+  </div>
+
+  <!-- ── Planner Section ─────────────────────────────────────────────────── -->
+  <div class="card">
+    <div id="login-area">
+      <button id="login-toggle">Planner Login</button>
+      <div id="login-form-wrap" class="hidden">
+        <form id="login-form" style="padding:0 16px 16px">
+          <div class="form-group">
+            <label for="f-username">Username</label>
+            <input type="text" id="f-username" name="username" autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label for="f-password">Password</label>
+            <input type="password" id="f-password" name="password" autocomplete="current-password">
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">Login</button>
+          <div id="login-error" class="login-error hidden"></div>
+        </form>
+      </div>
+    </div>
+    <div id="planner-panel" class="hidden">
+      <div class="pending-header">
+        <h3>Pending Approval</h3>
+        <button id="logout-btn" class="btn btn-ghost btn-sm">Logout</button>
+      </div>
+      <p id="pending-empty" class="pending-empty hidden">No events waiting for approval.</p>
+      <div id="pending-list" class="pending-list"></div>
+    </div>
+  </div>
+
+</div><!-- end page-wrapper -->
+
+<!-- ── Filter modal ────────────────────────────────────────────────────────── -->
+<div id="filter-overlay" class="overlay hidden"></div>
+<div id="filter-modal" class="filter-modal hidden">
+  <div class="filter-modal-header">
+    <h3>Filter Events</h3>
+    <button id="filter-close" class="close-btn" aria-label="Close">&#x2715;</button>
+  </div>
+  <div class="filter-modal-body">
+    <div class="filter-section">
+      <h4>Age Group</h4>
+      <div id="filter-ages"></div>
+    </div>
+    <div class="filter-section">
+      <h4>Event Type</h4>
+      <div id="filter-types"></div>
+    </div>
+  </div>
+  <div class="filter-modal-footer">
+    <button id="filter-clear" class="btn btn-ghost btn-sm">Clear All</button>
+    <button id="filter-apply" class="btn btn-primary">Apply</button>
+  </div>
+</div>
+
+<!-- ── Confirm dialog ──────────────────────────────────────────────────────── -->
+<div id="confirm-backdrop" class="confirm-backdrop hidden"></div>
+<div id="confirm-dialog" class="confirm-dialog hidden">
+  <p id="confirm-msg"></p>
+  <div class="confirm-actions">
+    <button id="confirm-no"  class="btn btn-ghost">Cancel</button>
+    <button id="confirm-yes" class="btn btn-primary">Confirm</button>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
