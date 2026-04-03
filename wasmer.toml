@@ -7,7 +7,7 @@ description = "Parent Schedule App"
 "php/php" = "8.*"
 
 [fs]
-"/app" = "website"
+"/app" = "public"
 
 [[command]]
 name = "run"
