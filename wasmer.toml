@@ -7,7 +7,7 @@ description = "Parent Schedule App"
 "php/php" = "8.*"
 
 [fs]
-"/app" = "website"
+"/" = "website"
 
 [[command]]
 name = "run"
@@ -15,4 +15,4 @@ module = "php/php:php"
 runner = "wasi"
 
 [command.annotations.wasi]
-main-args = ["-t", "/app", "-S", "0.0.0.0:8080"]
+main-args = ["-t", "/", "-S", "0.0.0.0:8080"]
