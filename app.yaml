@@ -1,0 +1,7 @@
+kind: wasmer.io/App.v0
+name: parentscheduleapp
+package: mikesaltveit/parentscheduleapp
+owner: mikesaltveit
+
+scaling:
+  mode: single_concurrency
