@@ -1,0 +1,26 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.VC.db
+*.VC.opendb
+
+# Build output
+x64/
+Debug/
+Release/
+*.exe
+*.obj
+*.pdb
+*.ilk
+*.exp
+*.lib
+
+# Claude Code
+.claude/
+
+# PHP uploads (user-generated content)
+website/uploads/*
+!website/uploads/.htaccess
+Parentapp/website/uploads/*
+!Parentapp/website/uploads/.htaccess
