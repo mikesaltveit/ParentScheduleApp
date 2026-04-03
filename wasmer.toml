@@ -1,0 +1,18 @@
+[package]
+name = "mikesaltveit/parentscheduleapp"
+version = "0.1.0"
+description = "Parent Schedule App"
+
+[dependencies]
+"php/php" = "8.*"
+
+[fs]
+"/app" = "website"
+
+[[command]]
+name = "run"
+module = "php/php:php"
+runner = "wasi"
+
+[command.annotations.wasi]
+main-args = ["-t", "/app", "-S", "0.0.0.0:8080"]
