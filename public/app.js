@@ -26,11 +26,6 @@ function eachDay(startStr, endStr, cb) {
   for (const d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) cb(fmtDate(d));
 }
 
-function getWeekStart(d) {
-  const s = new Date(d);
-  s.setDate(s.getDate() - s.getDay());
-  return s;
-}
 
 function timeToMinutes(t) {
   if (!t) return null;
@@ -102,6 +97,8 @@ window.addEventListener('popstate', render);
 
 // ── Event cache ───────────────────────────────────────────────────────────────
 const eventsCache = {};
+let plannerLoggedIn = false;
+let releaseNotes = '';
 
 async function fetchMonth(year, month) {
   const key = `${year}-${String(month + 1).padStart(2,'0')}`;
@@ -233,98 +230,13 @@ async function renderMonthView(state) {
 
     if (dayEvts.length) {
       cell.appendChild(buildAgeDots(dayEvts));
-      cell.addEventListener('click', () => {
-        const ws = fmtDate(getWeekStart(parseDate(ds)));
-        navigate({ view:'week', weekStart:ws, year:null, month:null, date:null, eventId:null });
-      });
-    }
-    grid.appendChild(cell);
-  }
-  content.appendChild(grid);
-}
-
-// ── Week view ─────────────────────────────────────────────────────────────────
-async function renderWeekView(state) {
-  const weekStart = state.weekStart ? parseDate(state.weekStart) : getWeekStart(today);
-
-  // Determine primary month (Thursday of the week)
-  const thu   = new Date(weekStart); thu.setDate(thu.getDate() + 4);
-  const pYear = thu.getFullYear(), pMonth = thu.getMonth();
-
-  // Load events for all months overlapping this week
-  const monthKeys = new Set();
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(weekStart); d.setDate(d.getDate() + i);
-    monthKeys.add(`${d.getFullYear()}-${d.getMonth()}`);
-  }
-  let allEvents = [];
-  for (const key of monthKeys) {
-    const [y, m] = key.split('-').map(Number);
-    allEvents.push(...await fetchMonth(y, m));
-  }
-  // Deduplicate
-  const seen = new Set();
-  allEvents = allEvents.filter(e => { if (seen.has(e.id)) return false; seen.add(e.id); return true; });
-
-  const filtered = applyFilters(allEvents, state);
-  const dayMap   = buildDayMap(filtered);
-
-  // Label: "March 2026 — Week N"
-  const monthName = new Date(pYear, pMonth, 1).toLocaleString('default', { month: 'long' });
-  const weekNum   = getWeekNumInMonth(weekStart, pYear, pMonth);
-  const label     = `${monthName} ${pYear} — Week ${weekNum}`;
-
-  const prevWeek = new Date(weekStart); prevWeek.setDate(prevWeek.getDate() - 7);
-  const nextWeek = new Date(weekStart); nextWeek.setDate(nextWeek.getDate() + 7);
-
-  setNav(
-    label,
-    () => navigate({ view:'month', year:pYear, month:pMonth, weekStart:null, date:null, eventId:null }),
-    () => navigate({ view:'week', weekStart:fmtDate(prevWeek), date:null, eventId:null }),
-    () => navigate({ view:'week', weekStart:fmtDate(nextWeek), date:null, eventId:null }),
-  );
-
-  const content = document.getElementById('view-content');
-  content.innerHTML = '';
-  const grid = document.createElement('div');
-  grid.className = 'cal-grid';
-
-  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d => {
-    const h = document.createElement('div');
-    h.className = 'cal-head'; h.textContent = d;
-    grid.appendChild(h);
-  });
-
-  const todayStr = fmtDate(today);
-  for (let i = 0; i < 7; i++) {
-    const d   = new Date(weekStart); d.setDate(d.getDate() + i);
-    const ds  = fmtDate(d);
-    const dayEvts = dayMap[ds] || [];
-    const cell = document.createElement('div');
-    cell.className = 'cal-cell week-cell' +
-      (ds === todayStr ? ' today'      : '') +
-      (dayEvts.length  ? ' has-events' : ' no-events');
-
-    const num = document.createElement('span');
-    num.className = 'day-num'; num.textContent = d.getDate();
-    cell.appendChild(num);
-
-    if (dayEvts.length) {
-      cell.appendChild(buildAgeDots(dayEvts));
       cell.addEventListener('click', () =>
-        navigate({ view:'day', date:ds, weekStart:null, eventId:null })
+        navigate({ view:'day', date:ds, year:null, month:null, weekStart:null, eventId:null })
       );
     }
     grid.appendChild(cell);
   }
   content.appendChild(grid);
-}
-
-function getWeekNumInMonth(weekStart, year, month) {
-  const firstOfMonth = new Date(year, month, 1);
-  const firstSunday  = new Date(firstOfMonth);
-  firstSunday.setDate(1 - firstOfMonth.getDay());
-  return Math.round((weekStart - firstSunday) / (7 * 86400000)) + 1;
 }
 
 // ── Day view ──────────────────────────────────────────────────────────────────
@@ -342,18 +254,29 @@ async function renderDayView(state) {
   const dayName   = d.toLocaleString('default', { weekday: 'long' });
   const monthName = d.toLocaleString('default', { month: 'long' });
   const dom       = d.getDate();
-  const label     = `${monthName} ${year} — ${dayName} the ${dom}${daySuffix(dom)}`;
+  const label     = `${monthName} ${year} \u2014 ${dayName} the ${dom}${daySuffix(dom)}`;
 
-  const weekStartDate = getWeekStart(d);
   const prev = new Date(d); prev.setDate(prev.getDate() - 1);
   const next = new Date(d); next.setDate(next.getDate() + 1);
 
   setNav(
     label,
-    () => navigate({ view:'week', weekStart:fmtDate(weekStartDate), date:null, eventId:null }),
+    null,
     () => navigate({ view:'day', date:fmtDate(prev), eventId:null }),
     () => navigate({ view:'day', date:fmtDate(next), eventId:null }),
   );
+
+  // Make the "Month Year" portion of the label a clickable link back to month view
+  const viewLabel = document.getElementById('view-label');
+  viewLabel.innerHTML = '';
+  const monthBtn = document.createElement('button');
+  monthBtn.className = 'nav-month-link';
+  monthBtn.textContent = `${monthName} ${year}`;
+  monthBtn.addEventListener('click', () =>
+    navigate({ view:'month', year, month, weekStart:null, date:null, eventId:null })
+  );
+  viewLabel.appendChild(monthBtn);
+  viewLabel.appendChild(document.createTextNode(` \u2014 ${dayName} the ${dom}${daySuffix(dom)}`));
 
   const content = document.getElementById('view-content');
   content.innerHTML = '';
@@ -553,6 +476,44 @@ async function renderEventView(state) {
 
   card.innerHTML = html;
 
+  // Planner edit/delete toolbar
+  if (plannerLoggedIn) {
+    const toolbar = document.createElement('div');
+    toolbar.className = 'planner-event-toolbar';
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'planner-icon-btn';
+    editBtn.title = 'Edit event';
+    editBtn.innerHTML = '&#9998;';
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'planner-icon-btn planner-icon-delete';
+    delBtn.title = 'Delete event';
+    delBtn.textContent = '\u2715';
+
+    toolbar.append(editBtn, delBtn);
+    card.insertBefore(toolbar, card.firstChild);
+
+    delBtn.addEventListener('click', () =>
+      showConfirm(
+        'Delete this event? This cannot be undone.',
+        async () => {
+          await fetch('api/delete.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: evt.id }),
+            credentials: 'same-origin',
+          });
+          Object.keys(eventsCache).forEach(k => delete eventsCache[k]);
+          navigate({ view: 'day', date, eventId: null });
+        },
+        { confirmLabel: 'DELETE', cancelLabel: 'Nevermind', confirmClass: 'btn-red' }
+      )
+    );
+
+    editBtn.addEventListener('click', () => renderEventEditForm(evt, date, content));
+  }
+
   // Google Calendar button
   const gcalBtn = document.createElement('a');
   gcalBtn.className  = 'btn btn-primary btn-full';
@@ -584,6 +545,177 @@ function buildGCalUrl(evt, timeEntry) {
     dates = `${s}/${fmtDate(eD).replace(/-/g,'')}`;
   }
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&location=${location}`;
+}
+
+// ── Event edit form (planner only) ───────────────────────────────────────────
+function renderEventEditForm(evt, date, container) {
+  container.innerHTML = '';
+
+  const isMulti = evt.endDate && evt.endDate !== evt.startDate;
+  const firstTime = (evt.times || [])[0] || {};
+
+  const form = document.createElement('form');
+  form.className = 'section-pad';
+  form.noValidate = true;
+
+  form.innerHTML = `
+    <div class="form-group">
+      <label>Title <span class="req">*</span></label>
+      <input type="text" name="title" value="${esc(evt.title)}" required>
+    </div>
+    <div class="form-group">
+      <label>Location <span class="optional">(optional)</span></label>
+      <input type="text" name="location" value="${esc(evt.location || '')}">
+    </div>
+    <div class="form-group">
+      <label>Event Type <span class="optional">(optional)</span></label>
+      <input type="text" name="type" value="${esc(evt.type || '')}" list="types-datalist">
+    </div>
+    <div class="form-group">
+      <label>Age Groups <span class="optional">(optional)</span></label>
+      <div class="age-checkboxes" id="edit-age-groups"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Start Date <span class="req">*</span></label>
+        <input type="date" name="startDate" value="${esc(evt.startDate)}" required>
+      </div>
+      <div class="form-group">
+        <label>End Date <span class="optional">(optional)</span></label>
+        <input type="date" name="endDate" value="${esc(evt.endDate || '')}">
+      </div>
+    </div>
+    ${!isMulti ? `
+    <div class="form-row">
+      <div class="form-group">
+        <label>Start Time <span class="optional">(optional)</span></label>
+        <input type="time" name="startTime" value="${esc(firstTime.startTime || '')}">
+      </div>
+      <div class="form-group">
+        <label>End Time <span class="optional">(optional)</span></label>
+        <input type="time" name="endTime" value="${esc(firstTime.endTime || '')}">
+      </div>
+    </div>` : `
+    <div id="edit-times-section" style="background:var(--primary-light);border-radius:8px;padding:12px;margin-bottom:14px;">
+      <h4 style="font-size:.85rem;font-weight:700;color:var(--primary-dark);margin-bottom:10px;">Daily Times <span style="font-weight:400;color:var(--text-muted)">(optional)</span></h4>
+      <div id="edit-times-grid"></div>
+    </div>`}
+    <div class="form-group">
+      <label>Price ($) <span class="optional">(0 = free)</span></label>
+      <input type="number" name="price" value="${esc(String(evt.price ?? 0))}" min="0" step="0.01">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button type="submit" class="btn btn-primary" style="flex:1">Save</button>
+      <button type="button" id="edit-cancel-btn" class="btn btn-ghost" style="flex:1">Cancel</button>
+    </div>
+    <div id="edit-status" class="hidden"></div>
+  `;
+
+  // Age checkboxes
+  const ageContainer = form.querySelector('#edit-age-groups');
+  AGE_GROUPS.forEach(g => {
+    const lbl = document.createElement('label');
+    lbl.className = 'age-check-label';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.name = 'ageGroup'; cb.value = g.id;
+    cb.checked = (evt.ageGroups || []).includes(g.id);
+    const dot = document.createElement('span');
+    dot.className = 'age-dot' + (g.id === 'everyone' ? ' age-dot-everyone' : '');
+    dot.style.background = g.color;
+    lbl.append(cb, dot, ' ' + g.label);
+    ageContainer.appendChild(lbl);
+  });
+  ageContainer.addEventListener('change', e => {
+    if (e.target.value === 'everyone' && e.target.checked)
+      ageContainer.querySelectorAll('input:not([value="everyone"])').forEach(cb => cb.checked = false);
+    else if (e.target.value !== 'everyone' && e.target.checked) {
+      const ev = ageContainer.querySelector('input[value="everyone"]');
+      if (ev) ev.checked = false;
+    }
+  });
+
+  // Multi-day times grid pre-populated
+  if (isMulti) {
+    const grid = form.querySelector('#edit-times-grid');
+    eachDay(evt.startDate, evt.endDate, ds => {
+      const d = parseDate(ds);
+      const lbl = d.toLocaleDateString('default', { weekday:'short', month:'short', day:'numeric' });
+      const existing = (evt.times || []).find(t => t.date === ds) || {};
+      const row = document.createElement('div');
+      row.className = 'times-row'; row.dataset.date = ds;
+      row.innerHTML = `
+        <span class="times-date">${esc(lbl)}</span>
+        <input type="time" name="startTime" value="${esc(existing.startTime || '')}" aria-label="Start ${esc(lbl)}">
+        <span class="times-sep">\u2013</span>
+        <input type="time" name="endTime" value="${esc(existing.endTime || '')}" aria-label="End ${esc(lbl)}">
+      `;
+      grid.appendChild(row);
+    });
+  }
+
+  form.querySelector('#edit-cancel-btn').addEventListener('click', () => render());
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const statusEl = form.querySelector('#edit-status');
+    const saveBtn  = form.querySelector('[type="submit"]');
+    saveBtn.disabled = true;
+    statusEl.className = 'status-msg'; statusEl.textContent = 'Saving\u2026';
+    statusEl.classList.remove('hidden');
+
+    const sv = form.elements['startDate'].value;
+    const ev2 = form.elements['endDate'].value;
+    const isMultiNow = sv && ev2 && ev2 > sv;
+
+    const times = [];
+    if (isMultiNow) {
+      form.querySelectorAll('#edit-times-grid .times-row').forEach(row => {
+        times.push({ date: row.dataset.date,
+          startTime: row.querySelector('[name="startTime"]').value,
+          endTime:   row.querySelector('[name="endTime"]').value });
+      });
+    } else if (sv) {
+      times.push({ date: sv,
+        startTime: form.querySelector('[name="startTime"]')?.value || '',
+        endTime:   form.querySelector('[name="endTime"]')?.value   || '' });
+    }
+
+    const ageGroups = Array.from(form.querySelectorAll('[name="ageGroup"]:checked')).map(cb => cb.value);
+
+    try {
+      const r = await fetch('api/update.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id:        evt.id,
+          title:     form.elements['title'].value.trim(),
+          location:  form.elements['location'].value.trim(),
+          type:      form.elements['type'].value.trim(),
+          price:     parseFloat(form.elements['price'].value) || 0,
+          startDate: sv,
+          endDate:   ev2 || sv,
+          ageGroups,
+          times,
+        }),
+        credentials: 'same-origin',
+      });
+      const data = await r.json();
+      if (data.ok) {
+        Object.keys(eventsCache).forEach(k => delete eventsCache[k]);
+        navigate({ view: 'event', eventId: evt.id, date: sv });
+      } else {
+        statusEl.className = 'status-msg error';
+        statusEl.textContent = data.error || 'Save failed.';
+        saveBtn.disabled = false;
+      }
+    } catch {
+      statusEl.className = 'status-msg error';
+      statusEl.textContent = 'Network error.';
+      saveBtn.disabled = false;
+    }
+  });
+
+  container.appendChild(form);
 }
 
 // ── Filter chips & modal ──────────────────────────────────────────────────────
@@ -794,11 +926,38 @@ async function handleSubmit(e) {
   btn.disabled = false;
 }
 
+// ── Release notes ────────────────────────────────────────────────────────────
+async function loadNotes() {
+  try {
+    const r = await fetch('api/notes.php', { credentials: 'same-origin' });
+    if (r.ok) { const d = await r.json(); releaseNotes = d.notes || ''; }
+  } catch {}
+}
+
+function openNotesModal() {
+  document.getElementById('notes-modal-version').textContent =
+    document.getElementById('version-num').textContent;
+  document.getElementById('notes-modal-body').textContent =
+    releaseNotes.trim() || 'No release notes yet.';
+  document.getElementById('notes-modal').classList.remove('hidden');
+  document.getElementById('notes-overlay').classList.remove('hidden');
+}
+
+function closeNotesModal() {
+  document.getElementById('notes-modal').classList.add('hidden');
+  document.getElementById('notes-overlay').classList.add('hidden');
+}
+
+function updateLoginNavBtn() {
+  const btn = document.getElementById('login-nav-btn');
+  btn.textContent = plannerLoggedIn ? 'Logout' : 'Login';
+}
+
 // ── Planner auth ──────────────────────────────────────────────────────────────
 async function checkSession() {
   try {
     const r = await fetch('api/pending.php', { credentials:'same-origin' });
-    if (r.ok) showPlannerPanel(await r.json());
+    if (r.ok) { plannerLoggedIn = true; showPlannerPanel(await r.json()); }
   } catch {}
 }
 
@@ -831,15 +990,22 @@ document.getElementById('logout-btn').addEventListener('click', async () => {
 });
 
 function showPlannerPanel(pending) {
+  plannerLoggedIn = true;
   document.getElementById('login-area').classList.add('hidden');
   document.getElementById('planner-panel').classList.remove('hidden');
   renderPendingList(pending);
+  updateLoginNavBtn();
+  document.getElementById('notes-input').value = releaseNotes;
+  render();
 }
 
 function hidePlannerPanel() {
+  plannerLoggedIn = false;
   document.getElementById('planner-panel').classList.add('hidden');
   document.getElementById('login-area').classList.remove('hidden');
   document.getElementById('login-form-wrap').classList.add('hidden');
+  updateLoginNavBtn();
+  render();
 }
 
 async function refreshPending() {
@@ -897,9 +1063,14 @@ function renderPendingList(events) {
   });
 }
 
-function showConfirm(msg, onConfirm) {
+function showConfirm(msg, onConfirm, opts = {}) {
   pendingConfirm = onConfirm;
   document.getElementById('confirm-msg').textContent = msg;
+  const yesBtn = document.getElementById('confirm-yes');
+  const noBtn  = document.getElementById('confirm-no');
+  yesBtn.textContent = opts.confirmLabel || 'Confirm';
+  yesBtn.className   = 'btn ' + (opts.confirmClass || 'btn-primary');
+  noBtn.textContent  = opts.cancelLabel  || 'Cancel';
   document.getElementById('confirm-backdrop').classList.remove('hidden');
   document.getElementById('confirm-dialog').classList.remove('hidden');
 }
@@ -917,7 +1088,6 @@ async function render() {
   renderFilterChips(state);
   try {
     switch (state.view) {
-      case 'week':  await renderWeekView(state);  break;
       case 'day':   await renderDayView(state);   break;
       case 'event': await renderEventView(state); break;
       default:      await renderMonthView(state); break;
@@ -928,6 +1098,63 @@ async function render() {
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
   initAgeCheckboxes();
+
+  // Notes popup
+  document.getElementById('version-header').addEventListener('click', openNotesModal);
+  document.getElementById('notes-close').addEventListener('click', closeNotesModal);
+  document.getElementById('notes-overlay').addEventListener('click', closeNotesModal);
+
+  // Nav jump buttons (Calendar, Submit Event)
+  document.querySelectorAll('.nav-jump-btn:not(#login-nav-btn)').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById(btn.dataset.target)?.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+
+  // Login / Logout nav button
+  document.getElementById('login-nav-btn').addEventListener('click', async () => {
+    if (plannerLoggedIn) {
+      await fetch('api/logout.php', { method: 'POST', credentials: 'same-origin' });
+      hidePlannerPanel();
+    } else {
+      document.getElementById('section-planner')?.scrollIntoView({ behavior: 'smooth' });
+    }
+  });
+
+  // Section ▲ Top buttons
+  document.querySelectorAll('.top-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById('top')?.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+
+  // Save notes (planner)
+  document.getElementById('save-notes-btn').addEventListener('click', async () => {
+    const notesInput = document.getElementById('notes-input');
+    const statusEl   = document.getElementById('notes-save-status');
+    const saveBtn    = document.getElementById('save-notes-btn');
+    saveBtn.disabled = true;
+    statusEl.className = 'status-msg'; statusEl.textContent = 'Saving\u2026';
+    statusEl.classList.remove('hidden');
+    try {
+      const r = await fetch('api/notes.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: notesInput.value }),
+        credentials: 'same-origin',
+      });
+      const data = await r.json();
+      if (data.ok) {
+        releaseNotes = notesInput.value;
+        statusEl.className = 'status-msg success'; statusEl.textContent = '\u2713 Notes saved.';
+      } else {
+        statusEl.className = 'status-msg error'; statusEl.textContent = data.error || 'Save failed.';
+      }
+    } catch {
+      statusEl.className = 'status-msg error'; statusEl.textContent = 'Network error.';
+    }
+    saveBtn.disabled = false;
+  });
 
   document.getElementById('filter-btn').addEventListener('click', openFilterModal);
   document.getElementById('filter-overlay').addEventListener('click', closeFilterModal);
@@ -945,6 +1172,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   setupForm();
+  await loadNotes();
   await loadTypes();
   await checkSession();
   await render();

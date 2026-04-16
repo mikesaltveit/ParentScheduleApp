@@ -3,5 +3,5 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="Parentapp/Parentapp.vcxproj" />
+  <Project Path="Parentapp/Parentapp.vcxproj" Id="12147b04-9885-42e7-8d8d-b11eb570753d" />
 </Solution>

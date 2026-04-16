@@ -5,20 +5,32 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#3B82F6">
   <title>Kids Events</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
 
-<div class="page-wrapper">
+<div id="top" class="page-wrapper">
 
-  <!-- ── Filter bar ──────────────────────────────────────────────────────── -->
-  <div id="filter-bar-wrap">
-    <button id="filter-btn" class="btn btn-ghost btn-sm">&#9881; Filter</button>
-    <div id="filter-chips"></div>
+  <!-- ── Version header ─────────────────────────────────────────────────── -->
+  <button id="version-header">PARENT SCHEDULE <span id="version-num">v0.4</span></button>
+
+  <!-- ── Nav buttons ─────────────────────────────────────────────────────── -->
+  <div id="nav-buttons">
+    <button class="nav-jump-btn" data-target="section-calendar">Calendar</button>
+    <button class="nav-jump-btn" data-target="section-submit">Submit Event</button>
+    <button id="login-nav-btn" class="nav-jump-btn">Login</button>
   </div>
 
   <!-- ── Main calendar card ──────────────────────────────────────────────── -->
-  <div class="card cal-card">
+  <div id="section-calendar" class="card cal-card">
+    <div class="section-header">
+      <div class="section-header-left">
+        <span class="section-title">Calendar</span>
+        <button id="filter-btn" class="btn btn-ghost btn-sm">&#9881; Filter</button>
+      </div>
+      <button class="top-btn" aria-label="Back to top">&#9650; Top</button>
+    </div>
+    <div id="filter-chips"></div>
     <div id="cal-nav">
       <button id="back-btn"  class="nav-btn back-btn" aria-label="Go back" style="display:none">&#171;</button>
       <button id="prev-btn"  class="nav-btn" aria-label="Previous">&#8249;</button>
@@ -29,8 +41,11 @@
   </div>
 
   <!-- ── Submit an Event ─────────────────────────────────────────────────── -->
-  <div class="card">
-    <h2 class="card-title">Submit an Event</h2>
+  <div id="section-submit" class="card">
+    <div class="section-header">
+      <span class="section-title">Submit an Event</span>
+      <button class="top-btn" aria-label="Back to top">&#9650; Top</button>
+    </div>
     <form id="event-form" class="section-pad" novalidate>
 
       <div class="form-group">
@@ -101,7 +116,11 @@
   </div>
 
   <!-- ── Planner Section ─────────────────────────────────────────────────── -->
-  <div class="card">
+  <div id="section-planner" class="card">
+    <div class="section-header">
+      <span class="section-title">Planner</span>
+      <button class="top-btn" aria-label="Back to top">&#9650; Top</button>
+    </div>
     <div id="login-area">
       <button id="login-toggle">Planner Login</button>
       <div id="login-form-wrap" class="hidden">
@@ -126,6 +145,12 @@
       </div>
       <p id="pending-empty" class="pending-empty hidden">No events waiting for approval.</p>
       <div id="pending-list" class="pending-list"></div>
+      <div id="planner-notes-section" class="section-pad">
+        <h4 class="notes-edit-label">Release Notes</h4>
+        <textarea id="notes-input" rows="5" placeholder="Enter release notes for this version&#8230;"></textarea>
+        <button id="save-notes-btn" class="btn btn-primary btn-sm" style="margin-top:8px">Save Notes</button>
+        <div id="notes-save-status" class="hidden"></div>
+      </div>
     </div>
   </div>
 
@@ -154,6 +179,16 @@
   </div>
 </div>
 
+<!-- ── Notes modal ─────────────────────────────────────────────────────────── -->
+<div id="notes-overlay" class="overlay hidden"></div>
+<div id="notes-modal" class="notes-modal hidden">
+  <div class="notes-modal-header">
+    <h3>PARENT SCHEDULE <span id="notes-modal-version">v0.3</span></h3>
+    <button id="notes-close" class="close-btn" aria-label="Close">&#x2715;</button>
+  </div>
+  <div id="notes-modal-body" class="notes-modal-body"></div>
+</div>
+
 <!-- ── Confirm dialog ──────────────────────────────────────────────────────── -->
 <div id="confirm-backdrop" class="confirm-backdrop hidden"></div>
 <div id="confirm-dialog" class="confirm-dialog hidden">
@@ -164,6 +199,6 @@
   </div>
 </div>
 
-<script src="app.js"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>
