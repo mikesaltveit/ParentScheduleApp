@@ -937,6 +937,54 @@ async function handleSubmit(e) {
   btn.disabled = false;
 }
 
+// ── Export / Import ───────────────────────────────────────────────────────────
+async function exportMonth(month) {
+  const r = await fetch(`api/events.php?month=${month}`, { credentials: 'same-origin' });
+  const events = await r.json();
+  const blob = new Blob([JSON.stringify(events, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `funfinder-${month}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+async function importMonth(month, file) {
+  const statusEl = document.getElementById('import-status');
+  statusEl.className = 'status-msg'; statusEl.textContent = 'Importing\u2026';
+  statusEl.classList.remove('hidden');
+  let events;
+  try {
+    events = JSON.parse(await file.text());
+  } catch {
+    statusEl.className = 'status-msg error'; statusEl.textContent = 'Invalid JSON file.';
+    return;
+  }
+  if (!Array.isArray(events)) {
+    statusEl.className = 'status-msg error'; statusEl.textContent = 'File must contain an array of events.';
+    return;
+  }
+  try {
+    const r = await fetch('api/import.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ month, events }),
+      credentials: 'same-origin',
+    });
+    const data = await r.json();
+    if (data.ok) {
+      Object.keys(eventsCache).forEach(k => delete eventsCache[k]);
+      statusEl.className = 'status-msg success';
+      statusEl.textContent = `\u2713 Imported ${data.count} event(s) for ${month}.`;
+      render();
+    } else {
+      statusEl.className = 'status-msg error'; statusEl.textContent = data.error || 'Import failed.';
+    }
+  } catch {
+    statusEl.className = 'status-msg error'; statusEl.textContent = 'Network error.';
+  }
+}
+
 // ── Release notes ────────────────────────────────────────────────────────────
 async function loadNotes() {
   try {
@@ -1162,6 +1210,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     btn.addEventListener('click', () => {
       document.getElementById('top')?.scrollIntoView({ behavior: 'smooth' });
     });
+  });
+
+  // Export / Import
+  const dataMonthEl = document.getElementById('data-month');
+  const s = getState();
+  dataMonthEl.value = `${s.year}-${String(s.month + 1).padStart(2, '0')}`;
+
+  document.getElementById('export-btn').addEventListener('click', () => {
+    const month = dataMonthEl.value;
+    if (!month) return;
+    exportMonth(month);
+  });
+  document.getElementById('import-btn').addEventListener('click', () => {
+    document.getElementById('import-file').click();
+  });
+  document.getElementById('import-file').addEventListener('change', async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const month = dataMonthEl.value;
+    if (!month) { alert('Please select a month first.'); return; }
+    await importMonth(month, file);
+    e.target.value = '';
   });
 
   // Save notes (planner)

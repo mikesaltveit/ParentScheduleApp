@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#3B82F6">
   <title>FunFinder!</title>
-  <link rel="stylesheet" href="style.css?v=8">
+  <link rel="stylesheet" href="style.css?v=9">
 </head>
 <body>
 
 <div id="top" class="page-wrapper">
 
   <!-- ── Version header ─────────────────────────────────────────────────── -->
-  <button id="version-header">FunFinder! <span id="version-num">v0.7</span></button>
+  <button id="version-header">FunFinder! <span id="version-num">v0.8</span></button>
 
   <!-- ── Nav buttons ─────────────────────────────────────────────────────── -->
   <div id="nav-buttons">
@@ -159,6 +159,16 @@
       </div>
       <p id="pending-empty" class="pending-empty hidden">No events waiting for approval.</p>
       <div id="pending-list" class="pending-list"></div>
+      <div id="planner-data-section" class="section-pad">
+        <h4 class="notes-edit-label">Event Data</h4>
+        <div class="data-row">
+          <input type="month" id="data-month">
+          <button id="export-btn" class="btn btn-ghost btn-sm">&#8595; Export</button>
+          <button id="import-btn" class="btn btn-ghost btn-sm">&#8593; Import</button>
+          <input type="file" id="import-file" accept=".json,application/json" class="hidden">
+        </div>
+        <div id="import-status" class="hidden"></div>
+      </div>
       <div id="planner-notes-section" class="section-pad">
         <h4 class="notes-edit-label">Release Notes</h4>
         <textarea id="notes-input" rows="5" placeholder="Enter release notes for this version&#8230;"></textarea>
@@ -215,6 +225,6 @@
   </div>
 </div>
 
-<script src="app.js?v=10"></script>
+<script src="app.js?v=11"></script>
 </body>
 </html>
