@@ -44,4 +44,8 @@ $written2 = @file_put_contents($testFile2, 'hello');
 $results['app_data_write_result'] = $written2;
 $results['app_data_read_back'] = file_exists($testFile2) ? file_get_contents($testFile2) : 'NOT FOUND';
 
+// 9. Show actual file contents
+$results['data_events_json']     = file_exists('/data/events.json')     ? json_decode(file_get_contents('/data/events.json'), true)     : 'NOT FOUND';
+$results['app_data_events_json'] = file_exists('/app/data/events.json') ? json_decode(file_get_contents('/app/data/events.json'), true) : 'NOT FOUND';
+
 echo json_encode($results, JSON_PRETTY_PRINT);
