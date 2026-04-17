@@ -972,9 +972,6 @@ async function checkSession() {
   } catch {}
 }
 
-document.getElementById('login-toggle').addEventListener('click', () => {
-  document.getElementById('login-form-wrap').classList.toggle('hidden');
-});
 
 document.getElementById('login-form').addEventListener('submit', async e => {
   e.preventDefault();
@@ -1007,6 +1004,10 @@ function showPlannerPanel(pending) {
   renderPendingList(pending);
   updateLoginNavBtn();
   document.getElementById('notes-input').value = releaseNotes;
+  // Ensure planner section is expanded
+  const pt = document.getElementById('planner-toggle');
+  const pb = document.getElementById('planner-body');
+  if (pt && pb) { pt.setAttribute('aria-expanded', 'true'); pb.classList.add('expanded'); }
   render();
 }
 
@@ -1014,7 +1015,6 @@ function hidePlannerPanel() {
   plannerLoggedIn = false;
   document.getElementById('planner-panel').classList.add('hidden');
   document.getElementById('login-area').classList.remove('hidden');
-  document.getElementById('login-form-wrap').classList.add('hidden');
   updateLoginNavBtn();
   render();
 }
@@ -1115,24 +1115,34 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('notes-close').addEventListener('click', closeNotesModal);
   document.getElementById('notes-overlay').addEventListener('click', closeNotesModal);
 
+  // Generic collapsible helpers
+  function toggleSection(toggleBtn, bodyEl) {
+    const open = toggleBtn.getAttribute('aria-expanded') === 'true';
+    toggleBtn.setAttribute('aria-expanded', String(!open));
+    bodyEl.classList.toggle('expanded', !open);
+    if (!open) toggleBtn.closest('.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  function expandSection(toggleBtn, bodyEl) {
+    const wasOpen = toggleBtn.getAttribute('aria-expanded') === 'true';
+    toggleBtn.setAttribute('aria-expanded', 'true');
+    bodyEl.classList.add('expanded');
+    if (!wasOpen) toggleBtn.closest('.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   // Submit section toggle
   const submitToggle = document.getElementById('submit-toggle');
   const submitBody   = document.getElementById('submit-body');
-  submitToggle.addEventListener('click', () => {
-    const open = submitToggle.getAttribute('aria-expanded') === 'true';
-    submitToggle.setAttribute('aria-expanded', String(!open));
-    submitBody.classList.toggle('expanded', !open);
-  });
+  submitToggle.addEventListener('click', () => toggleSection(submitToggle, submitBody));
 
-  function expandSubmit() {
-    submitToggle.setAttribute('aria-expanded', 'true');
-    submitBody.classList.add('expanded');
-  }
+  // Planner section toggle
+  const plannerToggle = document.getElementById('planner-toggle');
+  const plannerBody   = document.getElementById('planner-body');
+  plannerToggle.addEventListener('click', () => toggleSection(plannerToggle, plannerBody));
 
   // Nav jump buttons (Calendar, Submit Event)
   document.querySelectorAll('.nav-jump-btn:not(#login-nav-btn)').forEach(btn => {
     btn.addEventListener('click', () => {
-      if (btn.dataset.target === 'section-submit') expandSubmit();
+      if (btn.dataset.target === 'section-submit') expandSection(submitToggle, submitBody);
       document.getElementById(btn.dataset.target)?.scrollIntoView({ behavior: 'smooth' });
     });
   });
@@ -1143,7 +1153,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       await fetch('api/logout.php', { method: 'POST', credentials: 'same-origin' });
       hidePlannerPanel();
     } else {
-      document.getElementById('section-planner')?.scrollIntoView({ behavior: 'smooth' });
+      expandSection(plannerToggle, plannerBody);
     }
   });
 
