@@ -19,7 +19,10 @@ Release/
 # Claude Code
 .claude/
 
-# PHP uploads (user-generated content)
+# PHP runtime data and uploads (user-generated content)
+public/data/*.json
+public/uploads/*
+!public/uploads/.htaccess
 website/uploads/*
 !website/uploads/.htaccess
 Parentapp/website/uploads/*
