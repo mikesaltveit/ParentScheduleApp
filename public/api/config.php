@@ -10,8 +10,8 @@ const USERS = [
     ['username' => 'mikal', 'password' => 'asdf', 'role' => 'planner'],
 ];
 
-$DATA_DIR    = __DIR__ . '/../data/';
-$UPLOADS_DIR = __DIR__ . '/../uploads/';
+$DATA_DIR    = '/data/';
+$UPLOADS_DIR = '/data/uploads/';
 
 if (!is_dir($DATA_DIR))    mkdir($DATA_DIR,    0755, true);
 if (!is_dir($UPLOADS_DIR)) mkdir($UPLOADS_DIR, 0755, true);
@@ -70,5 +70,8 @@ function readJson($path) {
 }
 
 function writeJson($path, $data) {
-    file_put_contents($path, json_encode($data, JSON_PRETTY_PRINT), LOCK_EX);
+    $result = file_put_contents($path, json_encode($data, JSON_PRETTY_PRINT), LOCK_EX);
+    if ($result === false) {
+        respondJson(['error' => 'Write failed: ' . $path . ' (dir writable: ' . (is_writable(dirname($path)) ? 'yes' : 'no') . ')'], 500);
+    }
 }

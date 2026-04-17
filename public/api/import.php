@@ -20,11 +20,13 @@ $all = array_values(array_filter($all, function ($e) use ($month) {
 }));
 
 // Append imported events
+$added = 0;
 foreach ($events as $evt) {
     if (!empty($evt['id']) && !empty($evt['startDate'])) {
         $all[] = $evt;
+        $added++;
     }
 }
 
 writeJson($DATA_DIR . 'events.json', $all);
-respondJson(['ok' => true, 'count' => count($events)]);
+respondJson(['ok' => true, 'count' => $added]);
