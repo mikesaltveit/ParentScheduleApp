@@ -1033,17 +1033,23 @@ document.getElementById('login-form').addEventListener('submit', async e => {
     const r = await fetch('api/login.php', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ username:form.username.value, password:form.password.value }),
-      credentials:'same-origin',
     });
-    const data = await r.json();
-    if (data.ok) {
+    const raw = await r.text();
+    let data;
+    try { data = JSON.parse(raw); }
+    catch { errEl.textContent = 'Server error (bad JSON): ' + raw.slice(0, 80); errEl.classList.remove('hidden'); return; }
+    if (data.ok && data.token) {
       authToken = data.token;
       localStorage.setItem('ff_token', authToken);
       form.reset();
-      const pending = await (await fetch('api/pending.php', { headers: authHeaders() })).json();
+      let pending = [];
+      try {
+        const pr = await fetch('api/pending.php', { headers: authHeaders() });
+        if (pr.ok) pending = await pr.json();
+      } catch {}
       showPlannerPanel(pending);
-    } else { errEl.textContent = 'Invalid username or password.'; errEl.classList.remove('hidden'); }
-  } catch { errEl.textContent = 'Network error.'; errEl.classList.remove('hidden'); }
+    } else { errEl.textContent = data.error || 'Invalid username or password.'; errEl.classList.remove('hidden'); }
+  } catch(e) { errEl.textContent = 'Network error: ' + e.message; errEl.classList.remove('hidden'); }
 });
 
 document.getElementById('logout-btn').addEventListener('click', async () => {
