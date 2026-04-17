@@ -7,7 +7,7 @@ if (!$id) respondJson(['error' => 'Missing id'], 400);
 $events = readJson($DATA_DIR . 'events.json');
 $idx = array_search($id, array_column($events, 'id'));
 if ($idx === false) respondJson(['error' => 'Not found'], 404);
-foreach (['title','location','type','price','startDate','endDate','ageGroups','times'] as $field) {
+foreach (['title','location','type','description','price','startDate','endDate','ageGroups','times'] as $field) {
     if (array_key_exists($field, $data)) {
         $events[$idx][$field] = $data[$field];
     }

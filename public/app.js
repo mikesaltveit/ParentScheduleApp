@@ -9,7 +9,7 @@ const AGE_GROUPS = [
   { id: 'teen',      label: 'Teen',      color: '#F472B6', text: '#831843' },
   { id: 'adult',     label: 'Adult',     color: '#F87171', text: '#7F1D1D' },
   { id: 'senior',    label: 'Senior',    color: '#FB923C', text: '#7C2D12' },
-  { id: 'everyone',  label: 'Everyone',  color: '#FFFFFF', text: '#374151' },
+  { id: 'everyone',  label: 'Everyone',  color: '#111827', text: '#FFFFFF' },
 ];
 const AGE_MAP = Object.fromEntries(AGE_GROUPS.map(g => [g.id, g]));
 
@@ -320,7 +320,6 @@ function makeEventCard(evt, ds) {
   const colors  = eventAgeColors(evt);
   if (colors.length) {
     card.style.borderLeft = `4px solid ${colors[0]}`;
-    if (colors[0] === '#FFFFFF') card.style.borderLeftColor = '#D1D5DB';
   }
 
   const t = (evt.times || []).find(t => t.date === ds);
@@ -393,7 +392,7 @@ function renderTimeBlocks(events, ds) {
 
     const colors = eventAgeColors(evt);
     if (colors.length) {
-      block.style.borderLeftColor = colors[0] === '#FFFFFF' ? '#D1D5DB' : colors[0];
+      block.style.borderLeftColor = colors[0];
     }
 
     block.innerHTML =
@@ -432,8 +431,7 @@ async function renderEventView(state) {
 
   const colors = eventAgeColors(evt);
   if (colors.length) {
-    const c = colors[0] === '#FFFFFF' ? '#D1D5DB' : colors[0];
-    card.style.borderTop = `4px solid ${c}`;
+    card.style.borderTop = `4px solid ${colors[0]}`;
   }
 
   const ages = evt.ageGroups || [];
@@ -446,14 +444,14 @@ async function renderEventView(state) {
     toShow.forEach(a => {
       const g = AGE_MAP[a];
       if (!g) return;
-      const border = a === 'everyone' ? 'border:1px solid #D1D5DB;' : '';
-      html += `<span class="age-badge" style="background:${esc(g.color)};color:${esc(g.text)};${border}">${esc(g.label)}</span>`;
+      html += `<span class="age-badge" style="background:${esc(g.color)};color:${esc(g.text)}">${esc(g.label)}</span>`;
     });
     html += '</div>';
   }
 
   if (evt.type) html += `<span class="badge">${esc(evt.type)}</span>`;
   html += `<h2 class="event-detail-title">${esc(evt.title)}</h2>`;
+  if (evt.description) html += `<p class="event-detail-desc">${esc(evt.description)}</p>`;
 
   if (evt.location) html += `<div class="event-detail-row">&#128205; ${esc(evt.location)}</div>`;
 
@@ -611,6 +609,10 @@ function renderEventEditForm(evt, date, container) {
       <label>Price ($) <span class="optional">(0 = free)</span></label>
       <input type="number" name="price" value="${esc(String(evt.price ?? 0))}" min="0" step="0.01">
     </div>
+    <div class="form-group">
+      <label>Description <span class="optional">(optional)</span></label>
+      <textarea name="description" rows="3" placeholder="Additional details\u2026">${esc(evt.description || '')}</textarea>
+    </div>
     <div style="display:flex;gap:10px;margin-top:8px;">
       <button type="submit" class="btn btn-primary" style="flex:1">Save</button>
       <button type="button" id="edit-cancel-btn" class="btn btn-ghost" style="flex:1">Cancel</button>
@@ -694,13 +696,14 @@ function renderEventEditForm(evt, date, container) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id:        evt.id,
-          title:     form.elements['title'].value.trim(),
-          location:  form.elements['location'].value.trim(),
-          type:      form.elements['type'].value.trim(),
-          price:     parseFloat(form.elements['price'].value) || 0,
-          startDate: sv,
-          endDate:   ev2 || sv,
+          id:          evt.id,
+          title:       form.elements['title'].value.trim(),
+          location:    form.elements['location'].value.trim(),
+          type:        form.elements['type'].value.trim(),
+          price:       parseFloat(form.elements['price'].value) || 0,
+          startDate:   sv,
+          endDate:     ev2 || sv,
+          description: form.elements['description'].value.trim(),
           ageGroups,
           times,
         }),
@@ -902,14 +905,15 @@ async function handleSubmit(e) {
   ).map(cb => cb.value);
 
   const fd = new FormData();
-  fd.append('title',     form.title.value.trim());
-  fd.append('location',  form.location.value.trim());
-  fd.append('type',      form.type.value.trim());
-  fd.append('price',     form.price.value || '0');
-  fd.append('startDate', sv);
-  fd.append('endDate',   ev || sv);
-  fd.append('times',     JSON.stringify(times));
-  fd.append('ageGroups', JSON.stringify(ageGroups));
+  fd.append('title',       form.title.value.trim());
+  fd.append('location',    form.location.value.trim());
+  fd.append('type',        form.type.value.trim());
+  fd.append('price',       form.price.value || '0');
+  fd.append('startDate',   sv);
+  fd.append('endDate',     ev || sv);
+  fd.append('description', document.getElementById('f-desc').value.trim());
+  fd.append('times',       JSON.stringify(times));
+  fd.append('ageGroups',   JSON.stringify(ageGroups));
   if (form.flyer.files[0]) fd.append('flyer', form.flyer.files[0]);
 
   try {

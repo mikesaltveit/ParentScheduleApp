@@ -18,13 +18,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
 // ── POST: submit a new event to the pending queue ─────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $title     = trim($_POST['title']     ?? '');
-    $location  = trim($_POST['location']  ?? '');
-    $type      = trim($_POST['type']      ?? '');
-    $price     = max(0, (float)($_POST['price'] ?? 0));
-    $startDate = $_POST['startDate'] ?? '';
-    $endDate   = $_POST['endDate']   ?? '';
-    $timesJson = $_POST['times']     ?? '[]';
+    $title       = trim($_POST['title']       ?? '');
+    $location    = trim($_POST['location']    ?? '');
+    $type        = trim($_POST['type']        ?? '');
+    $description = trim($_POST['description'] ?? '');
+    $price       = max(0, (float)($_POST['price'] ?? 0));
+    $startDate   = $_POST['startDate'] ?? '';
+    $endDate     = $_POST['endDate']   ?? '';
+    $timesJson   = $_POST['times']     ?? '[]';
 
     if (!$title || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate)) {
         respondJson(['error' => 'Title and valid start date are required'], 400);
@@ -72,6 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'title'       => $title,
         'location'    => $location,
         'type'        => $type,
+        'description' => $description,
         'price'       => $price,
         'startDate'   => $startDate,
         'endDate'     => $endDate,
