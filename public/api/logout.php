@@ -1,5 +1,4 @@
 <?php
 require 'config.php';
-
-session_destroy();
+// Token-based auth: client discards token. Nothing to do server-side.
 respondJson(['ok' => true]);

@@ -11,8 +11,7 @@ $password = $body['password'] ?? '';
 
 foreach (USERS as $user) {
     if ($user['username'] === $username && $user['password'] === $password) {
-        $_SESSION['user'] = ['username' => $user['username'], 'role' => $user['role']];
-        respondJson(['ok' => true, 'role' => $user['role']]);
+        respondJson(['ok' => true, 'role' => $user['role'], 'token' => createToken($username, $user['role'])]);
     }
 }
 

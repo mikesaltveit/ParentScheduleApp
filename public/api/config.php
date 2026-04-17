@@ -1,7 +1,9 @@
 <?php
 ini_set('display_errors', '0');
-ini_set('session.save_path', '/tmp');
-session_start();
+
+// Simple HMAC token auth — no sessions (sessions are unreliable in Wasmer Edge WASM)
+define('TOKEN_SECRET', 'ff-secret-key-2024-xK9mP2qR');
+define('TOKEN_TTL',    86400 * 30); // 30 days
 
 // Add more planners here as needed
 const USERS = [
@@ -21,8 +23,37 @@ function respondJson($data, $status = 200) {
     exit;
 }
 
+function b64url_encode($s) {
+    return rtrim(strtr(base64_encode($s), '+/', '-_'), '=');
+}
+
+function createToken($username, $role) {
+    $payload = b64url_encode(json_encode(['u' => $username, 'r' => $role, 'e' => time() + TOKEN_TTL]));
+    $sig     = b64url_encode(hash_hmac('sha256', $payload, TOKEN_SECRET, true));
+    return $payload . '.' . $sig;
+}
+
+function validateToken() {
+    $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+    if (!$header && function_exists('apache_request_headers')) {
+        $headers = apache_request_headers();
+        $header  = $headers['Authorization'] ?? '';
+    }
+    if (!preg_match('/^Bearer\s+(.+)$/i', $header, $m)) return null;
+    $token = $m[1];
+    $parts = explode('.', $token);
+    if (count($parts) !== 2) return null;
+    [$payload, $sig] = $parts;
+    $expected = b64url_encode(hash_hmac('sha256', $payload, TOKEN_SECRET, true));
+    if (!hash_equals($expected, $sig)) return null;
+    $data = json_decode(base64_decode(strtr($payload, '-_', '+/')), true);
+    if (!$data || $data['e'] < time()) return null;
+    return $data;
+}
+
 function requirePlanner() {
-    if (empty($_SESSION['user']) || $_SESSION['user']['role'] !== 'planner') {
+    $data = validateToken();
+    if (!$data || ($data['r'] ?? '') !== 'planner') {
         respondJson(['error' => 'Unauthorized'], 401);
     }
 }

@@ -98,7 +98,12 @@ window.addEventListener('popstate', render);
 // ── Event cache ───────────────────────────────────────────────────────────────
 const eventsCache = {};
 let plannerLoggedIn = false;
+let authToken = localStorage.getItem('ff_token') || null;
 let releaseNotes = '';
+
+function authHeaders(extra = {}) {
+  return authToken ? { 'Authorization': `Bearer ${authToken}`, ...extra } : extra;
+}
 
 async function fetchMonth(year, month) {
   const key = `${year}-${String(month + 1).padStart(2,'0')}`;
@@ -500,9 +505,8 @@ async function renderEventView(state) {
         async () => {
           const r = await fetch('api/delete.php', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: authHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({ id: evt.id }),
-            credentials: 'same-origin',
           });
           const data = await r.json();
           if (data.ok) {
@@ -694,7 +698,7 @@ function renderEventEditForm(evt, date, container) {
     try {
       const r = await fetch('api/update.php', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           id:          evt.id,
           title:       form.elements['title'].value.trim(),
@@ -707,7 +711,6 @@ function renderEventEditForm(evt, date, container) {
           ageGroups,
           times,
         }),
-        credentials: 'same-origin',
       });
       const data = await r.json();
       if (data.ok) {
@@ -967,9 +970,8 @@ async function importMonth(month, file) {
   try {
     const r = await fetch('api/import.php', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ month, events }),
-      credentials: 'same-origin',
     });
     const data = await r.json();
     if (data.ok) {
@@ -1014,9 +1016,11 @@ function updateLoginNavBtn() {
 
 // ── Planner auth ──────────────────────────────────────────────────────────────
 async function checkSession() {
+  if (!authToken) return;
   try {
-    const r = await fetch('api/pending.php', { credentials:'same-origin' });
+    const r = await fetch('api/pending.php', { headers: authHeaders() });
     if (r.ok) { plannerLoggedIn = true; showPlannerPanel(await r.json()); }
+    else { authToken = null; localStorage.removeItem('ff_token'); }
   } catch {}
 }
 
@@ -1033,15 +1037,18 @@ document.getElementById('login-form').addEventListener('submit', async e => {
     });
     const data = await r.json();
     if (data.ok) {
+      authToken = data.token;
+      localStorage.setItem('ff_token', authToken);
       form.reset();
-      const pending = await (await fetch('api/pending.php',{credentials:'same-origin'})).json();
+      const pending = await (await fetch('api/pending.php', { headers: authHeaders() })).json();
       showPlannerPanel(pending);
     } else { errEl.textContent = 'Invalid username or password.'; errEl.classList.remove('hidden'); }
   } catch { errEl.textContent = 'Network error.'; errEl.classList.remove('hidden'); }
 });
 
 document.getElementById('logout-btn').addEventListener('click', async () => {
-  await fetch('api/logout.php', { method:'POST', credentials:'same-origin' });
+  authToken = null;
+  localStorage.removeItem('ff_token');
   hidePlannerPanel();
 });
 
@@ -1061,6 +1068,8 @@ function showPlannerPanel(pending) {
 
 function hidePlannerPanel() {
   plannerLoggedIn = false;
+  authToken = null;
+  localStorage.removeItem('ff_token');
   document.getElementById('planner-panel').classList.add('hidden');
   document.getElementById('login-area').classList.remove('hidden');
   updateLoginNavBtn();
@@ -1069,7 +1078,7 @@ function hidePlannerPanel() {
 
 async function refreshPending() {
   try {
-    const r = await fetch('api/pending.php',{credentials:'same-origin'});
+    const r = await fetch('api/pending.php', { headers: authHeaders() });
     renderPendingList(await r.json());
   } catch {}
 }
@@ -1103,8 +1112,8 @@ function renderPendingList(events) {
   list.querySelectorAll('[data-action="approve"]').forEach(btn => {
     btn.addEventListener('click', () =>
       showConfirm('Approve this event? It will become visible to all visitors.', async () => {
-        await fetch('api/approve.php',{method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({id:btn.dataset.id}),credentials:'same-origin'});
+        await fetch('api/approve.php',{method:'POST',headers:authHeaders({'Content-Type':'application/json'}),
+          body:JSON.stringify({id:btn.dataset.id})});
         Object.keys(eventsCache).forEach(k => delete eventsCache[k]);
         await render(); await refreshPending();
       })
@@ -1114,8 +1123,8 @@ function renderPendingList(events) {
   list.querySelectorAll('[data-action="reject"]').forEach(btn => {
     btn.addEventListener('click', () =>
       showConfirm('Reject and delete this event? This cannot be undone.', async () => {
-        await fetch('api/reject.php',{method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({id:btn.dataset.id}),credentials:'same-origin'});
+        await fetch('api/reject.php',{method:'POST',headers:authHeaders({'Content-Type':'application/json'}),
+          body:JSON.stringify({id:btn.dataset.id})});
         await refreshPending();
       })
     );
@@ -1198,7 +1207,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Login / Logout nav button
   document.getElementById('login-nav-btn').addEventListener('click', async () => {
     if (plannerLoggedIn) {
-      await fetch('api/logout.php', { method: 'POST', credentials: 'same-origin' });
       hidePlannerPanel();
     } else {
       expandSection(plannerToggle, plannerBody);
@@ -1245,9 +1253,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       const r = await fetch('api/notes.php', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ notes: notesInput.value }),
-        credentials: 'same-origin',
       });
       const data = await r.json();
       if (data.ok) {
