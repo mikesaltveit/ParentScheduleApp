@@ -8,8 +8,11 @@ const USERS = [
     ['username' => 'mikal', 'password' => 'asdf', 'role' => 'planner'],
 ];
 
-$DATA_DIR  = __DIR__ . '/../data/';
+$DATA_DIR    = __DIR__ . '/../data/';
 $UPLOADS_DIR = __DIR__ . '/../uploads/';
+
+if (!is_dir($DATA_DIR))    mkdir($DATA_DIR,    0755, true);
+if (!is_dir($UPLOADS_DIR)) mkdir($UPLOADS_DIR, 0755, true);
 
 function respondJson($data, $status = 200) {
     http_response_code($status);
