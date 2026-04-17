@@ -329,7 +329,8 @@ function makeEventCard(evt, ds) {
   html += `<div class="event-card-title">${esc(evt.title)}</div>`;
   if (evt.location) html += `<div class="event-card-meta">&#128205; ${esc(evt.location)}</div>`;
   if (t?.startTime) {
-    const time = [t.startTime, t.endTime].filter(Boolean).join(' \u2013 ');
+    const fmt = s => minutesToTime(timeToMinutes(s));
+    const time = [t.startTime, t.endTime].filter(Boolean).map(fmt).join(' \u2013 ');
     html += `<div class="event-card-meta">&#128336; ${esc(time)}</div>`;
   }
   html += evt.price > 0
@@ -462,7 +463,8 @@ async function renderEventView(state) {
 
   const timeEntry = (evt.times || []).find(t => t.date === date);
   if (timeEntry?.startTime) {
-    const t = [timeEntry.startTime, timeEntry.endTime].filter(Boolean).join(' \u2013 ');
+    const fmt = s => minutesToTime(timeToMinutes(s));
+    const t = [timeEntry.startTime, timeEntry.endTime].filter(Boolean).map(fmt).join(' \u2013 ');
     html += `<div class="event-detail-row">&#128336; ${esc(t)}</div>`;
   }
 
@@ -498,14 +500,19 @@ async function renderEventView(state) {
       showConfirm(
         'Delete this event? This cannot be undone.',
         async () => {
-          await fetch('api/delete.php', {
+          const r = await fetch('api/delete.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: evt.id }),
             credentials: 'same-origin',
           });
-          Object.keys(eventsCache).forEach(k => delete eventsCache[k]);
-          navigate({ view: 'day', date, eventId: null });
+          const data = await r.json();
+          if (data.ok) {
+            Object.keys(eventsCache).forEach(k => delete eventsCache[k]);
+            navigate({ view: 'day', date, eventId: null });
+          } else {
+            alert(data.error || 'Delete failed. You may need to log in again.');
+          }
         },
         { confirmLabel: 'DELETE', cancelLabel: 'Nevermind', confirmClass: 'btn-red' }
       )
