@@ -1115,9 +1115,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('notes-close').addEventListener('click', closeNotesModal);
   document.getElementById('notes-overlay').addEventListener('click', closeNotesModal);
 
+  // Submit section toggle
+  const submitToggle = document.getElementById('submit-toggle');
+  const submitBody   = document.getElementById('submit-body');
+  submitToggle.addEventListener('click', () => {
+    const open = submitToggle.getAttribute('aria-expanded') === 'true';
+    submitToggle.setAttribute('aria-expanded', String(!open));
+    submitBody.classList.toggle('expanded', !open);
+  });
+
+  function expandSubmit() {
+    submitToggle.setAttribute('aria-expanded', 'true');
+    submitBody.classList.add('expanded');
+  }
+
   // Nav jump buttons (Calendar, Submit Event)
   document.querySelectorAll('.nav-jump-btn:not(#login-nav-btn)').forEach(btn => {
     btn.addEventListener('click', () => {
+      if (btn.dataset.target === 'section-submit') expandSubmit();
       document.getElementById(btn.dataset.target)?.scrollIntoView({ behavior: 'smooth' });
     });
   });

@@ -91,6 +91,43 @@ body {
   font-weight: 700;
   color: var(--text);
 }
+
+/* Collapsible toggle button (wraps title + chevron) */
+.section-toggle {
+  background: none; border: none; padding: 0;
+  display: flex; align-items: center; gap: 8px;
+  cursor: pointer; font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+.section-toggle:hover .section-title { color: var(--primary); }
+
+/* CSS chevron arrow */
+.toggle-chevron {
+  display: inline-block;
+  width: 7px; height: 7px; flex-shrink: 0;
+  border-right: 2.5px solid var(--primary);
+  border-bottom: 2.5px solid var(--primary);
+  transform: rotate(-45deg);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-top: -2px;
+}
+.section-toggle[aria-expanded="true"] .toggle-chevron {
+  transform: rotate(45deg);
+  margin-top: 2px;
+}
+
+/* Collapsible body — grid-rows trick for smooth height animation */
+.collapsible-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.collapsible-wrap.expanded {
+  grid-template-rows: 1fr;
+}
+.collapsible-inner {
+  overflow: hidden;
+}
 .top-btn {
   background: none; border: none;
   font-size: .75rem; font-weight: 600;

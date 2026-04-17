@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#3B82F6">
   <title>Kids Events</title>
-  <link rel="stylesheet" href="style.css?v=6">
+  <link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
 
@@ -43,9 +43,14 @@
   <!-- ── Submit an Event ─────────────────────────────────────────────────── -->
   <div id="section-submit" class="card">
     <div class="section-header">
-      <span class="section-title">Submit an Event</span>
+      <button id="submit-toggle" class="section-toggle" aria-expanded="false">
+        <span class="section-title">Submit an Event</span>
+        <span class="toggle-chevron" aria-hidden="true"></span>
+      </button>
       <button class="top-btn" aria-label="Back to top">&#9650; Top</button>
     </div>
+    <div id="submit-body" class="collapsible-wrap">
+    <div class="collapsible-inner">
     <form id="event-form" class="section-pad" novalidate>
 
       <div class="form-group">
@@ -118,6 +123,8 @@
       <button type="submit" id="submit-btn" class="btn btn-primary btn-full">Submit Event</button>
       <div id="submit-status" class="hidden"></div>
     </form>
+    </div>
+    </div>
   </div>
 
   <!-- ── Planner Section ─────────────────────────────────────────────────── -->
@@ -204,6 +211,6 @@
   </div>
 </div>
 
-<script src="app.js?v=8"></script>
+<script src="app.js?v=9"></script>
 </body>
 </html>
