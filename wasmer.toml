@@ -1,7 +1,7 @@
 [package]
 name = "mikesaltveit/parentscheduleapp"
-version = "0.8.0"
-description = "Parent Schedule App"
+version = "0.9.0"
+description = "FunFinder!"
 
 [dependencies]
 "php/php" = "8.*"
