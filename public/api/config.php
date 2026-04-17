@@ -19,6 +19,7 @@ if (!is_dir($UPLOADS_DIR)) mkdir($UPLOADS_DIR, 0755, true);
 function respondJson($data, $status = 200) {
     http_response_code($status);
     header('Content-Type: application/json');
+    header('Cache-Control: no-store, no-cache, must-revalidate');
     echo json_encode($data);
     exit;
 }

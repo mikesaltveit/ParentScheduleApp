@@ -109,7 +109,7 @@ async function fetchMonth(year, month) {
   const key = `${year}-${String(month + 1).padStart(2,'0')}`;
   if (!eventsCache[key]) {
     try {
-      const r = await fetch(`api/events.php?month=${key}`, { credentials: 'same-origin' });
+      const r = await fetch(`api/events2.php?month=${key}`, { credentials: 'same-origin' });
       eventsCache[key] = r.ok ? await r.json() : [];
     } catch { eventsCache[key] = []; }
   }
@@ -920,7 +920,7 @@ async function handleSubmit(e) {
   if (form.flyer.files[0]) fd.append('flyer', form.flyer.files[0]);
 
   try {
-    const r    = await fetch('api/events.php', { method:'POST', body:fd, credentials:'same-origin' });
+    const r    = await fetch('api/events2.php', { method:'POST', body:fd, credentials:'same-origin' });
     const data = await r.json();
     if (data.ok) {
       statusEl.className = 'status-msg success';
@@ -942,7 +942,7 @@ async function handleSubmit(e) {
 
 // ── Export / Import ───────────────────────────────────────────────────────────
 async function exportMonth(month) {
-  const r = await fetch(`api/events.php?month=${month}`, { credentials: 'same-origin' });
+  const r = await fetch(`api/events2.php?month=${month}`, { credentials: 'same-origin' });
   const events = await r.json();
   const blob = new Blob([JSON.stringify(events, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
